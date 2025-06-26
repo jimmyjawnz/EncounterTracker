@@ -1,0 +1,473 @@
+﻿@layout DisplayLayout;
+@page "/encounter/controller"
+
+@inject AuthenticationStateProvider authenticationStateProvider
+@inject UserManager<ApplicationUser> userManager
+
+@inject IJSRuntime JS
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+<PageTitle>Encounter Controller</PageTitle>
+<title>Encounter Controller</title>
+
+<NavMenu />
+
+<Modal @ref=modal>
+    <Title>
+        Add Block
+    </Title>
+    <Body>
+        <table class="table table-striped table-primary">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (BlockPresets.Count <= 0)
+                {
+                    <tr>
+                        <td colspan="5" class="bg-dark text-white text-center">
+                            No Presets in Database
+                        </td>
+                    </tr>
+                }
+                @foreach (BlockPreset block in BlockPresets)
+                {
+                <tr @onclick="() => AddBlock(block)">
+                    <td>@block.Id</td>
+                    <td>@block.Name</td>
+                    <td>@block.Type.ToString()</td>
+                </tr>
+                }
+            </tbody>
+        </table>
+    </Body>
+</Modal>
+
+<Modal @ref=modalEncounters>
+    <Title>
+        Load Encounter
+    </Title>
+    <Body>
+
+        <table class="table table-striped table-light">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Location</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ExistingEncounters.Count <= 0)
+                {
+                    <tr>
+                        <td colspan="5" class="bg-black text-white text-center">
+                            No Encounters in Database
+                        </td>
+                    </tr>
+                }
+                @foreach (Encounter encounter in ExistingEncounters)
+                {
+                    <tr @onclick="() => LoadEncounter(encounter)">
+                        <td>@encounter.Id</td>
+                        <td>@encounter.Title</td>
+                        <td>@encounter.Location</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </Body>
+</Modal>
+
+<Modal @ref=modalImages>
+    <Title>
+        Change Background Image
+    </Title>
+    <Body>
+        <div class="row mb-3">
+            <ImageUpload OnUpload="(img) => LoadBgImage(img)" />
+        </div>
+        <DisplayDbImages OnImageClick="(img) => LoadBgImage(img)" />
+    </Body>
+</Modal>
+
+<div class="bg-primary text-light" style="width: 100%; height: 92.25vh;">
+    @if (CurrentEncounter is null)
+    {
+        <div style="display: flex; width: 100%;" class="pt-5">
+            <button style="flex: 1;" class="btn btn-lg btn-success" @onclick="NewEncounter">New Encounter</button>
+            <button style="flex: 1;" class="btn btn-lg btn-info" @onclick="ShowLoadEncounter">Load Encounter</button>
+        </div>
+        
+    }
+    else
+    {
+        <div class="row pt-4 m-0">
+            <div class="row col-6 m-0">
+                <div class="col-4">
+                    <label class="form-label w-100">Title</label>
+                    <InputText class="form-control" @bind-Value=@CurrentEncounter.Title />
+                </div>
+                <div class="col-4">
+                    <label class="form-label w-100">Location</label>
+                    <InputText class="form-control" @bind-Value=@CurrentEncounter.Location />
+                </div>
+
+                <button class="btn btn-success col-4 " @onclick="ShowImageModal"><i class="bi bi-image me-2"></i>Change Background</button>
+            </div>
+        
+            <div class="row col-6 m-0">
+                <button class="btn btn-info col-3" @onclick="() => SendEncounter()"><i class="bi bi-arrow-clockwise me-2"></i>Update Display</button>
+
+                <a class="col-3" href="encounter/display" target="_blank">
+                    <button class="btn btn-secondary h-100 w-100"><i class="bi bi-display me-2"></i>Open Display</button>
+                </a>
+
+                <button class="btn btn-outline-light col-3" @onclick="NewEncounter"><i class="bi bi-plus-lg me-2"></i>New Encounter</button>
+                <button class="btn btn-light col-3" @onclick="ShowLoadEncounter"><i class="bi bi-box-arrow-in-down me-2"></i>Load Encounter</button>
+            </div>
+
+        </div>
+
+        <div class="row pt-4 m-0">
+            <div class="row m-0 pb-2">
+                <div class="col-5"></div>
+                <button class="btn btn-warning col-3">Start Initative</button>
+                <button class="btn btn-light col-2"><i class="bi bi-caret-left-fill"></i> Prev</button>
+                <button class="btn btn-light col-2">Next <i class="bi bi-caret-right-fill"></i></button>
+            </div>
+            <div class="p-0 bg-primary-subtle" style="overflow: scroll; overflow-x: hidden; height:75vh;">
+                <table class="table table-sm table-striped table-light">
+                    <thead>
+                        <tr>
+                            <th width="10%"> </th>
+                            <th width="15%" class="text-center">Initative</th>
+                            <th>Name</th>
+                            <th width="30%">Health (MAX)</th>
+                            <th width="5%" class="text-center">Type</th>
+                            <th width="5%" class="text-center">
+                                <button @onclick="ShowAddBlock" class="btn btn-sm btn-success">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (CurrentEncounter.EncounterBlocks.Count <= 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center">
+                                    No Blocks in Encounter
+                                </td>
+                            </tr>
+                        }
+                        @foreach (EncounterBlock block in CurrentEncounter.EncounterBlocks.OrderBy(b => b.BlockPreset.Name))
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    <label class="eye-contain align-content-center">
+                                    <input type="checkbox" @oninput="(arg) => ChangeVisibility(block, arg)" checked=@block.Visibility />
+                                    <CheckboxEye /></label>
+                                </td>
+                                <td class="text-center">
+                                    <input class="form-control bg-light-subtle" type="number" @onchange="(arg) => ChangeInitative(block, arg)" value=@block.Initiative />
+                                </td>
+                                <td class="text-black">@block.BlockPreset.Name</td>
+                                <td class="text-black">
+                                    <input class="form-control" type="number" @onchange="(arg) => ChangeHealth(block, arg)" value=@block.CurrentHealth />
+                                    (@block.BlockPreset.MaxHealth)</td>
+                                <td class="text-center text-black">@block.BlockPreset.Type.ToString()</td>
+                                <td class="text-center">
+                                    <button @onclick="() => RemoveBlock(block)" class="btn btn-sm btn-danger"><i class="bi bi-x-lg"></i></button>
+                                </td>
+                            </tr>
+                        }
+                        <tr>
+                            <td colspan="9">
+                                <button @onclick="ShowAddBlock" class="btn btn-success w-100">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+
+    private Encounter? CurrentEncounter { get; set; } = null;
+    private ApplicationDbContext? RenderContext { get; set; }
+    private ApplicationDbContext? Context { get; set; }
+
+    private ICollection<Encounter> ExistingEncounters = [];
+    private ICollection<BlockPreset> BlockPresets = [];
+
+    private int CurrentInitative { get; set; } = 0;
+
+    private Modal modal { get; set; } = default!;
+    private Modal modalEncounters { get; set; } = default!;
+    private Modal modalImages { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Context = DbFactory.CreateDbContext();
+
+        BlockPresets = await Context.BlockPresets.Include(b => b.Image).ToListAsync();
+
+        await Context.DisposeAsync();
+
+        await SendEncounter();
+    }
+
+    private async Task LoadUserEncounters()
+    {
+        var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await userManager.GetUserAsync(authState.User);
+
+        Context = DbFactory.CreateDbContext();
+
+        if (user is not null)
+        {
+            ExistingEncounters = await Context.Encounters.Where(e => e.UserId == user.Id || e.UserId == null)
+                .Include(e => e.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.BlockPreset)
+                    .ThenInclude(b => b.Image)
+                .ToListAsync();
+        }
+        else
+        {
+            ExistingEncounters = await Context.Encounters.Where(e => e.UserId == null)
+                .Include(e => e.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.BlockPreset)
+                    .ThenInclude(b => b.Image)
+                .ToListAsync();
+        }
+
+        await Context.DisposeAsync();
+    }
+
+    private async Task NewEncounter()
+    {
+        CurrentEncounter = new();
+
+        var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await userManager.GetUserAsync(authState.User);
+
+        if (user is not null)
+        {
+            CurrentEncounter.UserId = user.Id;
+        }
+        else
+        {
+            CurrentEncounter.UserId = null;
+        }
+
+
+        modalEncounters.Close();
+
+        await SendEncounter();
+    }
+
+    private async Task LoadEncounter(Encounter encounter)
+    {
+        CurrentEncounter = encounter;
+
+        modalEncounters.Close();
+
+        await SendEncounter(true);
+    }
+
+    private async Task SendEncounter(bool loaded = false)
+    {
+        if (CurrentEncounter is null)
+        {
+            return;
+        }
+
+        if (!loaded)
+        {
+            RenderContext = DbFactory.CreateDbContext();
+
+            if (CurrentEncounter.Id == 0)
+            {
+                await RenderContext!.Encounters.AddAsync(CurrentEncounter);
+            }
+            else
+            {
+                RenderContext.Encounters.Update(CurrentEncounter);
+            }
+
+            await RenderContext.SaveChangesAsync();
+            await RenderContext.DisposeAsync();
+        }
+
+        await JS.InvokeVoidAsync("broadcastMessage", new EncounterDT()
+        {
+            Id = CurrentEncounter.Id,
+            Title = CurrentEncounter.Title,
+            Location = CurrentEncounter.Location,
+            BackgroundImageId = CurrentEncounter.ImageId
+        });
+
+    }
+
+    private async Task LoadBgImage(Image image)
+    {
+        if (CurrentEncounter is null)
+        {
+            return;
+        }
+
+        CurrentEncounter.Image = image;
+        CurrentEncounter.ImageId = image.Id;
+
+        modalImages.Close();
+
+        await SendEncounter();
+    }
+
+    private async Task ShowLoadEncounter()
+    {
+        await LoadUserEncounters();
+
+        modalEncounters.Open();
+    }
+
+    private void ShowImageModal()
+    {
+        modalImages.Open();
+    }
+
+    private void ShowAddBlock()
+    {
+        modal.Open();
+    }
+
+    private async Task AddBlock(BlockPreset block)
+    {
+        if (CurrentEncounter is null)
+        {
+            return;
+        }
+
+        Context = DbFactory.CreateDbContext();
+
+        EncounterBlock newBlock = Context.Blocks.Add(new()
+            {
+                BlockPreset = block,
+                BlockPresetId = block.Id,
+                CurrentHealth = block.MaxHealth,
+            }).Entity;
+
+        Context.Dispose();
+
+        CurrentEncounter.EncounterBlocks.Add(newBlock);
+
+        modal.Close();
+
+        await SendEncounter();
+    }
+
+    private async Task RemoveBlock(EncounterBlock block)
+    {
+        if (CurrentEncounter is null)
+        {
+            return;
+        }
+
+        CurrentEncounter.EncounterBlocks.Remove(block);
+
+        Context = DbFactory.CreateDbContext();
+
+        Context.Blocks.Remove(block);
+        Context.SaveChanges();
+        Context.Dispose();
+
+        await SendEncounter();
+    }
+
+    public async Task ChangeInitative(EncounterBlock block, ChangeEventArgs arg)
+    {
+        if (block is null)
+        {
+            return;
+        }
+
+        if (arg.Value is null || string.IsNullOrEmpty(arg.Value.ToString()))
+        {
+            block.Initiative = null;
+        }
+        else
+        {
+            block.Initiative = int.Parse(arg.Value.ToString());
+        }
+
+        await UpdateBlock(block);
+
+        await SendEncounter();
+    }
+
+    public async Task ChangeHealth(EncounterBlock block, ChangeEventArgs arg)
+    {
+        if (block is null)
+        {
+            return;
+        }
+
+        if (arg.Value is null || string.IsNullOrEmpty(arg.Value.ToString()))
+        {
+            block.CurrentHealth = 0;
+        }
+        else
+        {
+            block.CurrentHealth = int.Parse(arg.Value.ToString());
+        }
+
+        await UpdateBlock(block);
+
+        await SendEncounter();
+    }
+
+
+    public async Task ChangeVisibility(EncounterBlock block, ChangeEventArgs arg)
+    {
+        if (block is null)
+        {
+            return;
+        }
+
+        if (arg.Value is null || string.IsNullOrEmpty(arg.Value.ToString()))
+        {
+            block.Visibility = false;
+        }
+        else
+        {
+            block.Visibility = bool.Parse(arg.Value.ToString());
+        }
+
+        await UpdateBlock(block);
+
+        await SendEncounter();
+    }
+
+    public async Task UpdateBlock(EncounterBlock block)
+    {
+        Context = DbFactory.CreateDbContext();
+
+        Context.Blocks.Update(block);
+        Context.SaveChanges();
+
+        Context.Dispose();
+    }
+}

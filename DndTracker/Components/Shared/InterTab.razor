@@ -1,0 +1,24 @@
+﻿@page "/intertab"
+@using DndTracker.Services
+
+@inject IJSRuntime JS
+@inject InterTabService InterTabService
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+<h3>Inter-Tab Communication Demo</h3>
+
+<input @bind="MessageToSend" placeholder="Type a message" />
+
+<p><strong>Last message received:</strong> @LastMessageReceived</p>
+
+@code {
+    private string MessageToSend = string.Empty;
+    private string LastMessageReceived = string.Empty;
+    private DotNetObjectReference<InterTab>? objRef;
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}

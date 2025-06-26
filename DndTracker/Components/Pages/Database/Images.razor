@@ -1,0 +1,25 @@
+﻿@page "/db/images"
+
+<PageTitle>Images - Database</PageTitle>
+<title>Images - Database</title>
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+<h1>Images</h1>
+
+<div class="row mb-3">
+    <ImageUpload OnUpload="LoadData" />
+</div>
+
+<DisplayDbImages @ref=dbImages AllowDelete=true />
+
+@code {
+    private DisplayDbImages dbImages { get; set; } = default!;
+
+    public async Task LoadData()
+    {
+        await dbImages.LoadData();
+    }
+}

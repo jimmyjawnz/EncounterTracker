@@ -1,0 +1,78 @@
+.bg-image {
+    /* Add the blur effect */
+    filter: blur(1vh);
+    -webkit-filter: blur(1vh);
+    /* Full height */
+    height: 99vh;
+    width: 99vw;
+    object-fit: cover;
+    object-position: center;
+}
+
+.stroke {
+    text-stroke: 10px black;
+    -webkit-text-stroke: 10px black;
+}
+
+
+td {
+    align-content: center;
+    justify-content: center;
+}
+
+
+
+/*------ Settings ------*/
+.eye-contain {
+    --color: #1a1a1a;
+    --size: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: var(--size);
+    user-select: none;
+    fill: var(--color);
+}
+
+    .eye-contain .eye {
+        
+        animation: keyframes-fill .5s;
+        display: none;
+    }
+
+    .eye-contain .eye-slash {
+        
+        animation: keyframes-fill .5s;
+        
+    }
+
+    /* ------ On check event ------ */
+    .eye-contain input:checked ~ .eye-slash {
+        display: none;
+    }
+
+    .eye-contain input:checked ~ .eye {
+        display: block;
+    }
+
+    /* ------ Hide the default checkbox ------ */
+    .eye-contain input {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+/* ------ Animation ------ */
+@keyframes keyframes-fill {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+}

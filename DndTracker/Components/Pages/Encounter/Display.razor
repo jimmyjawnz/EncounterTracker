@@ -1,0 +1,143 @@
+﻿@layout DisplayLayout
+@page "/encounter/display"
+
+@inject IJSRuntime JS
+@inject InterTabService InterTabService
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+<PageTitle>Encounter Display</PageTitle>
+<title>Encounter Display</title>
+
+
+<div class="bg-black text-white text-center" style="height: 100vh;">
+    @if (CurrentEncounter.Id is null)
+    {
+        <p class="text-muted">No Encounter Detected/Loaded</p>
+    }
+    @if (CurrentEncounter.BackgroundImage != null)
+    {
+        <img class="bg-image" src="data:image/jpg;base64,@Convert.ToBase64String(CurrentEncounter.BackgroundImage.ToArray())" />
+    }
+    <h1 style="position:absolute; top:4vh; width: 100vw; font-size: 40pt; font-weight: bold;" class="text-white stroke">@CurrentEncounter.Title</h1>
+    <h1 style="position:absolute; top:4vh; width: 100vw; font-size: 40pt; font-weight: bold;" class="text-white">@CurrentEncounter.Title</h1>
+    <h3 style="position:absolute; top:10vh; width: 100vw; font-size: 20pt; font-weight: bold;" class="text-white stroke">@CurrentEncounter.Location</h3>
+    <h3 style="position:absolute; top:10vh; width: 100vw; font-size: 20pt; font-weight: bold;" class="text-white">@CurrentEncounter.Location</h3>
+
+    <div style="position:absolute; top:17vh; width: 100vw; height:80vh; justify-items: center; overflow: scroll; overflow-x: hidden; scrollbar-width: none;">
+        @if (CurrentEncounter.EncounterBlocks.Count > 0)
+        {
+            @foreach (EncounterBlock block in CurrentEncounter.EncounterBlocks.OrderBy(b => b.BlockPreset.Name).OrderByDescending(b => b.Initiative))
+            {
+                @if(block.Visibility)
+                {
+                    <div style="display: flex; width: 50vw; height: 10vh; margin-bottom: 1vh;">
+                        <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 10vh;">
+                            @if (block.Initiative is not null)
+                            {
+                                <h4 style="font-size: xx-large;" class="text-white w-100 m-0">@block.Initiative</h4>
+                            }
+                        </div>
+                        <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 10vh;">
+                            <img style="width: 9.9vh; height: 9.9vh; object-fit: cover;" src="data:image/jpg;base64,@Convert.ToBase64String(block.BlockPreset.Image!.Bytes)" />
+                        </div>
+                        <div class="card bg-black bg-opacity-75 rounded-0 text-white" style="width: 45vw;">
+                            <div class="card-body">
+                                <div class="card-title text-start">
+                                    <h4>
+                                        @block.BlockPreset.Name
+                                        <span class="float-end text-white-50">@block.BlockPreset.Type</span>
+                                    </h4>
+                                </div>
+                                @if (block.BlockPreset.Type != 0)
+                                {
+                                    <div class="progress bg-dark" style="height: 3vh; font-size: x-large;">
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: @(((double)block.CurrentHealth!.Value / (double)block.BlockPreset.MaxHealth!.Value) * 100.0)%;" aria-valuenow="@block.CurrentHealth" aria-valuemin="0" aria-valuemax="@block.BlockPreset.MaxHealth!">
+                                            <span class="float-start">@block.CurrentHealth</span>
+                                        </div>
+
+                                    </div>
+                                    <span class="float-end">@block.BlockPreset.MaxHealth</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private EncounterDT CurrentEncounter { get; set; } = new();
+
+    private DotNetObjectReference<Display>? objRef;
+
+    private string Message = string.Empty;
+
+    private ApplicationDbContext? Context { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("onBroadcastMessage", objRef);
+
+            InterTabService.OnEncounterRecieved += async () =>
+                await InvokeAsync(() =>
+                {
+                    StateHasChanged();
+                });
+        };
+    }
+
+    [JSInvokable]
+    public async Task ReceiveEncounter(int encounterId)
+    {
+        Context = DbFactory.CreateDbContext();
+
+        Console.WriteLine("Recieved Encounter Id => " + encounterId.ToString());
+
+        Encounter? dbEncounter = await Context!.Encounters.Include(e => e.Image)
+            .Include(e => e.EncounterBlocks).ThenInclude(b => b.BlockPreset).ThenInclude(b => b.Image)
+            .FirstOrDefaultAsync(e => e.Id == encounterId);
+
+        if (dbEncounter == null)
+        {
+            Context.Dispose();
+            return;
+        }
+
+        Console.WriteLine("Loaded Encounter => " + dbEncounter.Title!.ToString());
+
+        CurrentEncounter = new()
+            {
+                Id = dbEncounter.Id,
+                Title = dbEncounter.Title,
+                Location = dbEncounter.Location,
+                EncounterBlocks = dbEncounter.EncounterBlocks
+            };
+
+        if (dbEncounter.Image is null)
+        {
+            CurrentEncounter.BackgroundImage = null;
+        }
+        else
+        {
+            CurrentEncounter.BackgroundImage = dbEncounter.Image.Bytes;
+        }
+
+        Context.Dispose();
+        InterTabService.NotifyEncounterReceived();
+    }
+
+    public void Dispose()
+    {
+        Context?.Dispose();
+        objRef?.Dispose();
+    }
+}

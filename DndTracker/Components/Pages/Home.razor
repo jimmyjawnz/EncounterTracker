@@ -1,0 +1,77 @@
+﻿@page "/"
+
+@inject IJSRuntime JS
+@inject InterTabService InterTabService
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<PageTitle>Home</PageTitle>
+
+<AuthorizeView>
+	<Authorized>
+		<h1>Welcome, @context.User.Identity?.Name. </h1>
+		<div class="bg-dark-subtle p-3 rounded-5 mt-5">
+			<div style="display: flex;" class="flex-row flex-wrap justify-content-around">
+				<div class="text-center flex-column mb-3 mt-3" style="display: flex; min-width: 20rem; min-height: 10rem;">
+					<a href="/encounter/controller">
+						<button class="btn btn-lg btn-primary w-100 h-100" style="min-height: 8rem; align-content: center;">
+							<i class="bi bi-collection-fill"></i>
+							<br />
+							Encounter
+						</button>
+					</a>
+				</div>
+				<div class="text-center flex-column mb-3 mt-3" style="display: flex; min-width: 20rem; min-height: 10rem;">
+					<a href="/db">
+						<button class="btn btn-lg btn-primary w-100 h-100" style="min-height: 8rem; align-content: center;">
+							<i class="bi bi-database-fill"></i>
+							<br />
+							Database
+						</button>
+					</a>
+				</div>
+			</div>
+		</div>
+	</Authorized>
+	<NotAuthorized>
+		<h1>Welcome.</h1>
+		<h3>You are currently not logged in.</h3>
+		<a class="btn btn-primary" href="/login">
+			Login
+		</a>
+		<br /><br />
+		<p class="mb-1">Don't have an account?</p>
+		<a class="btn btn-sm btn-outline-dark" href="/register">
+			Create an Account
+		</a>
+	</NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+	private string LastMessageReceived = string.Empty;
+	private DotNetObjectReference<Home>? objRef;
+
+	private ApplicationDbContext? Context { get; set; }
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		Context = DbFactory.CreateDbContext();
+
+		var emptyEncounters = Context.Encounters.Where(e => e.Location == string.Empty && e.Title == string.Empty && e.Image == null).ToList();
+		Context.Encounters.RemoveRange(emptyEncounters);
+
+		await Context.SaveChangesAsync();
+		Context.Dispose();
+	}
+
+
+	public void Dispose()
+	{
+		objRef?.Dispose();
+		Context?.Dispose();
+	}
+}

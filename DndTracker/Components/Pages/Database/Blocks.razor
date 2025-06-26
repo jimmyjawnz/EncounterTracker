@@ -1,0 +1,307 @@
+﻿@page "/db/blocks"
+
+<PageTitle>Blocks - Database</PageTitle>
+<title>Blocks - Database</title>
+
+@implements IDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+<h1>Block Presets</h1>
+
+<Modal @ref=@addModal>
+    <Title>
+        Create Block Preset
+    </Title>
+    <Body>
+        <EditForm FormName="EditBlockPreset" EditContext="@editContext">
+            <DataAnnotationsValidator />
+
+            <div class="row mb-3">
+                <label class="form-label">Image</label>
+                @if (blockPreset.Image is not null)
+                {
+                    <img style="width: 3vw; height: auto; object-fit: contain; align-self: center;" src="data:image/jpg;base64,@Convert.ToBase64String(blockPreset.Image!.Bytes)" />
+                    <input disabled class="form-control" value=@blockPreset.Image!.Name />
+                }
+                <button class="btn btn-primary" @onclick="ShowImageModal">Change Image</button>
+                <ValidationMessage For="() => blockPreset.Image" />
+            </div>
+            
+
+            <div class="row mb-3">
+                <label class="form-label">Name</label>
+                <InputText class="form-control" @bind-Value=@blockPreset.Name />
+                <ValidationMessage For="() => blockPreset.Name" />
+            </div>
+
+            <div class="row mb-3">
+                <label class="form-label">Type</label>
+                <InputSelect class="form-select" @bind-Value="@blockPreset.Type">
+                    <option value="Player">Player</option>
+                    <option value="NPC">NPC</option>
+                    <option value="Monster">Monster</option>
+                </InputSelect>
+                <ValidationMessage For="() => blockPreset.Type" />
+            </div>
+
+            <div class="row mb-3">
+                <label class="form-label">Max Health</label>
+                <InputNumber class="form-control" TValue="int?" @bind-Value=@blockPreset.MaxHealth />
+                <ValidationMessage For="() => blockPreset.MaxHealth" />
+            </div>
+
+            <button @onclick=CloseModal class="btn btn-secondary float-end">Cancel</button>
+            <button @onclick=AddPresetBlock class="btn btn-success float-end me-2">Create Preset</button>
+        </EditForm>
+    </Body>
+</Modal>
+
+<Modal @ref=@editModal>
+    <Title>
+        Edit Block Preset
+    </Title>
+    <Body>
+        <EditForm FormName="EditBlockPreset" EditContext="@editContext">
+            <DataAnnotationsValidator />
+
+            <div class="row mb-3">
+                <label class="form-label">Image</label>
+                @if(blockPreset.Image is not null)
+                {
+                    <img style="width: 3vw; height: auto; object-fit: contain; align-self: center;" src="data:image/jpg;base64,@Convert.ToBase64String(blockPreset.Image!.Bytes)" />
+                    <input disabled class="form-control" value=@blockPreset.Image!.Name />
+                }
+                <button class="btn btn-primary" @onclick="ShowImageModal">Change Image</button>
+                <ValidationMessage For="() => blockPreset.Image" />
+            </div>
+
+            <div class="row mb-3">
+                <label class="form-label">Name</label>
+                <InputText class="form-control" @bind-Value=@blockPreset.Name />
+                <ValidationMessage For="() => blockPreset.Name" />
+            </div>
+
+            <div class="row mb-3">
+                <label class="form-label">Type</label>
+                <InputSelect class="form-select" @bind-Value="@blockPreset.Type">
+                    <option value="Player">Player</option>
+                    <option value="NPC">NPC</option>
+                    <option value="Monster">Monster</option>
+                </InputSelect>
+                <ValidationMessage For="() => blockPreset.Type" />
+            </div>
+
+            <div class="row mb-3">
+                <label class="form-label">Max Health</label>
+                <InputNumber class="form-control" TValue="int?" @bind-Value=@blockPreset.MaxHealth />
+                <ValidationMessage For="() => blockPreset.MaxHealth" />
+            </div>
+
+            <button @onclick=CloseModal class="btn btn-secondary float-end">Cancel</button>
+            <button @onclick=EditPresetBlock class="btn btn-success float-end me-2">Save Edit</button>
+        </EditForm>
+    </Body>
+</Modal>
+
+<Modal @ref=@deleteModal>
+    <Title>
+        Delete Block Preset
+    </Title>
+    <Body>
+        <h3>Are you sure you want to delete <strong>@blockPreset.Name</strong>?</h3>
+        <button @onclick=DeletePresetBlock class="btn btn-danger float-end">Confirm Delete</button>
+        <button @onclick=CloseModal class="btn btn-secondary float-end me-2">Cancel</button>
+    </Body>
+</Modal>
+
+<Modal @ref=@imagesModal>
+    <Title>
+        Change Preset Image
+    </Title>
+    <Body>
+        <div class="row mb-3">
+            <ImageUpload OnUpload="(img) => LoadImage(img)" />
+        </div>
+        <DisplayDbImages OnImageClick="(img) => LoadImage(img)" />
+
+        <button @onclick=imagesModal.Close class="btn btn-secondary float-end mt-3">Cancel</button>
+    </Body>
+</Modal>
+
+<button @onclick="ShowAddModal" class="btn btn-primary mb-3">Add Preset</button>
+<button @onclick="LoadData" class="btn btn-outline-info float-end">Refresh</button>
+
+@if(ExistingPresets is null)
+{
+    <div class="alert alert-secondary">
+        <p class="mb-0"><stong>Loading...</stong>    This shouldn't take long</p>
+    </div>
+}
+else
+{
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th width="5%" class="text-center">ID</th>
+                <th width="10%" class="text-center">Image</th>
+                <th>Name</th>
+                <th width="10%" class="text-center">Max Health</th>
+                <th width="20%" class="text-center">Type</th>
+                <th width="8%"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ExistingPresets.Count <= 0)
+            {
+                <tr>
+                    <td colspan="5" class="bg-dark text-white text-center">
+                        No Presets in Database
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (BlockPreset block in ExistingPresets)
+                {
+                    <tr>
+                        <td class="text-black text-center">@block.Id</td>
+                        <td class="text-center">
+                            <img style="width: 3vw; height: auto; object-fit: contain; align-self: center;" src="data:image/jpg;base64,@Convert.ToBase64String(@block.Image!.Bytes)" />
+                        </td>
+                        <td class="text-black">@block.Name</td>
+                        <td class="text-black text-center">@block.MaxHealth</td>
+                        <td class="text-black text-center">@block.Type.ToString()</td>
+                        <td>
+                            <button @onclick="() => ShowEditModal(block)" class="btn btn-info"><i class="bi bi-pencil-square"></i></button>
+                            <button @onclick="() => ShowDeleteModal(block)" class="btn btn-danger"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+
+
+@code {
+    private Modal addModal { get; set; } = default!;
+    private Modal editModal { get; set; } = default!;
+    private Modal deleteModal { get; set; } = default!;
+    private Modal imagesModal { get; set; } = default!;
+
+    private ICollection<BlockPreset>? ExistingPresets { get; set; } = null;
+
+    private ApplicationDbContext? Context { get; set; }
+
+    private EditContext editContext { get; set; } = default!;
+
+    private BlockPreset blockPreset { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new(blockPreset);
+
+        await LoadData();
+    }
+
+    public async Task LoadData()
+    {
+        ExistingPresets = null;
+
+        Context = DbFactory.CreateDbContext();
+
+        ExistingPresets = await Context.BlockPresets.Include(p => p.Image).ToListAsync();
+
+        Context.Dispose();
+    }
+
+    private async Task AddPresetBlock()
+    {
+        blockPreset.Image = null;
+
+        Context = DbFactory.CreateDbContext();
+
+        Context.BlockPresets.Add(blockPreset);
+        Context.SaveChanges();
+
+        Context.Dispose();
+        await CloseModal();
+    }
+
+    private async Task EditPresetBlock()
+    {
+        Context = DbFactory.CreateDbContext();
+
+        Context.BlockPresets.Update(blockPreset);
+        Context.SaveChanges();
+
+        Context.Dispose();
+        await CloseModal();
+    }
+
+    private async Task DeletePresetBlock()
+    {
+        Context = DbFactory.CreateDbContext();
+
+        Context.BlockPresets.Remove(blockPreset);
+        Context.SaveChanges();
+
+        Context.Dispose();
+        await CloseModal();
+    }
+
+    private void ShowAddModal()
+    {
+        blockPreset = new();
+        addModal.Open();
+    }
+
+    private void ShowEditModal(BlockPreset block)
+    {
+        blockPreset = block;
+        editModal.Open();
+    }
+
+    private void ShowDeleteModal(BlockPreset block)
+    {
+        blockPreset = block;
+        deleteModal.Open();
+    }
+
+    private void ShowImageModal()
+    {
+        imagesModal.Open();
+    }
+
+    private async Task CloseModal()
+    {
+        await LoadData();
+
+        imagesModal.Close();
+        deleteModal.Close();
+        editModal.Close();
+        addModal.Close();
+    }
+
+    private void LoadImage(Image image)
+    {
+        if (blockPreset is null)
+        {
+            return;
+        }
+
+        blockPreset.Image = image;
+        blockPreset.ImageId = image.Id;
+
+        imagesModal.Close();
+    }
+
+    public void Dispose()
+    {
+        if (Context is not null)
+            Context.Dispose();
+    }
+}

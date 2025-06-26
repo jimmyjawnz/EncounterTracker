@@ -1,0 +1,165 @@
+﻿@page "/db/encounters"
+
+<PageTitle>Encounters - Database</PageTitle>
+<title>Encounters - Database</title>
+
+@inject AuthenticationStateProvider authenticationStateProvider
+@inject UserManager<ApplicationUser> userManager
+
+@implements IDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+<h1>Encounters</h1>
+
+<Modal @ref=@deleteModal>
+    <Title>
+        Delete Encounter
+    </Title>
+    <Body>
+        <h3>Are you sure you want to delete <strong>@Encounter.Title</strong>?</h3>
+        <button @onclick=DeleteEncounter class="btn btn-danger float-end">Confirm Delete</button>
+        <button @onclick=CloseModal class="btn btn-secondary float-end me-2">Cancel</button>
+    </Body>
+</Modal>
+
+<button @onclick="LoadData" class="btn btn-outline-info float-end">Refresh</button>
+
+@if(ExistingEncounters is null)
+{
+    <div class="alert alert-secondary">
+        <p class="mb-0"><stong>Loading...</stong>    This shouldn't take long</p>
+    </div>
+}
+else
+{
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th width="5%" class="text-center">ID</th>
+                <th width="10%" class="text-center">Image</th>
+                <th>Title</th>
+                <th width="30%" class="text-center">Location</th>
+                <th width="8%"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (ExistingEncounters.Count <= 0)
+            {
+                <tr>
+                    <td colspan="5" class="bg-dark text-white text-center">
+                        No Encounters in Database
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (Encounter encounter in ExistingEncounters)
+                {
+                    <tr>
+                        <td class="text-black text-center">@encounter.Id</td>
+                        <td class="text-center">
+                            @if(encounter.Image is not null)
+                            {
+                                <img style="width: 3vw; height: auto; object-fit: contain; align-self: center;" src="data:image/jpg;base64,@Convert.ToBase64String(encounter.Image!.Bytes)" />
+                            }
+                        </td>
+                        <td class="text-black">@encounter.Title</td>
+                        <td class="text-black text-center">@encounter.Location</td>
+                        <td>
+                            <button @onclick="() => ShowDeleteModal(encounter)" class="btn btn-danger"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+
+
+@code {
+    private Modal deleteModal { get; set; } = default!;
+
+    private ICollection<Encounter>? ExistingEncounters { get; set; } = null;
+
+    private ApplicationDbContext? Context { get; set; }
+
+    private Encounter Encounter { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    public async Task LoadData()
+    {
+        ExistingEncounters = null;
+
+        var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await userManager.GetUserAsync(authState.User);
+
+        Context = DbFactory.CreateDbContext();
+
+        var emptyEncounters = Context.Encounters.Where(e => e.Location == string.Empty && e.Title == string.Empty && e.Image == null).ToList();
+        Context.Encounters.RemoveRange(emptyEncounters);
+        Context.SaveChanges();
+
+        if (user is not null)
+        {
+            ExistingEncounters = await Context.Encounters.Where(e => e.UserId == user.Id || e.UserId == null)
+                .Include(e => e.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.BlockPreset)
+                    .ThenInclude(b => b.Image)
+                .ToListAsync();
+        }
+        else
+        {
+            ExistingEncounters = await Context.Encounters.Where(e => e.UserId == null)
+                .Include(e => e.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.BlockPreset)
+                    .ThenInclude(b => b.Image)
+                .ToListAsync();
+        }
+
+        
+
+        await Context.DisposeAsync();
+    }
+
+    private async Task DeleteEncounter()
+    {
+        Context = DbFactory.CreateDbContext();
+
+        Context.Encounters.Remove(Encounter);
+
+        List<EncounterBlock> conflictingBlocks = Context.Blocks.Where(b => b.EncounterId == Encounter.Id || b.EncounterId == null).ToList();
+        Context.Blocks.RemoveRange(conflictingBlocks);
+
+        Context.SaveChanges();
+
+        Context.Dispose();
+        await CloseModal();
+    }
+
+    private void ShowDeleteModal(Encounter encounter)
+    {
+        Encounter = encounter;
+        deleteModal.Open();
+    }
+
+    private async Task CloseModal()
+    {
+        await LoadData();
+        deleteModal.Close();
+    }
+
+    public void Dispose()
+    {
+        if (Context is not null)
+            Context.Dispose();
+    }
+}

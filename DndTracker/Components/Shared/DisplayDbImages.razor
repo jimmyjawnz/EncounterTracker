@@ -1,0 +1,86 @@
+﻿@implements IDisposable
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@rendermode @(new InteractiveServerRenderMode(false))
+@attribute [StreamRendering]
+
+<div class="bg-primary-subtle row mb-5" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-evenly;">
+    @foreach (Image image in ExistingImages)
+    {
+        <div @onclick="() => ClickImage(image)" class="card bg-priamry m-3" style="height: 100%; flex: 0 0 11vw;">
+            <h5 class="card-header">@image.Name </h5>
+            <img style="width: 10vw; height: auto; object-fit: contain; align-self: center; margin-bottom: 1rem;" src="data:image/jpg;base64,@Convert.ToBase64String(image.Bytes)" />
+            @if (AllowDelete && image.Id != 1)
+            {
+                <button @onclick="() => DeleteImage(image)" class="btn btn-danger float-end mb-2"><i style="font-size: x-large;" class="bi bi-trash"></i></button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool AllowDelete { get; set; } = false;
+
+    [Parameter]
+    public EventCallback<Image> OnImageClick { get; set; }
+
+    private ApplicationDbContext? Context { get; set; }
+
+    private ICollection<Image> ExistingImages = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    public async Task LoadData()
+    {
+        Context = DbFactory.CreateDbContext();
+
+        ExistingImages = await Context.Images.ToListAsync();
+
+        Context.Dispose();
+    }
+
+    public void Dispose()
+    {
+        Context?.Dispose();
+    }
+
+    private async Task ClickImage(Image image)
+    {
+        await OnImageClick.InvokeAsync(image);
+    }
+
+    private async Task DeleteImage(Image image)
+    {
+        if(image.Id == 1)
+        {
+            return;
+        }
+
+        Context = DbFactory.CreateDbContext();
+
+        var conflictingEncounters = Context.Encounters.Where(e => e.ImageId == image.Id).ToList();
+        foreach(Encounter encounter in conflictingEncounters)
+        {
+            encounter.Image = null;
+            encounter.ImageId = null;
+        }
+
+        var conflictingBlocks = Context.BlockPresets.Where(p => p.ImageId == image.Id).ToList();
+        foreach (BlockPreset block in conflictingBlocks)
+        {
+            block.Image = null;
+            block.ImageId = 1;
+        }
+
+        Context.Remove(image);
+        await Context.SaveChangesAsync();
+
+        ExistingImages = await Context.Images.ToListAsync();
+
+        Context.Dispose();
+    }
+
+}
