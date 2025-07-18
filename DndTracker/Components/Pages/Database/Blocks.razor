@@ -1,4 +1,5 @@
 ﻿@page "/db/blocks"
+@using System.ComponentModel.DataAnnotations
 
 <PageTitle>Blocks - Database</PageTitle>
 <title>Blocks - Database</title>
@@ -15,29 +16,30 @@
         Create Block Preset
     </Title>
     <Body>
-        <EditForm FormName="EditBlockPreset" EditContext="@editContext">
+        <EditForm FormName="AddBlockPreset" EditContext="@editContext" OnValidSubmit="AddPresetBlock">
             <DataAnnotationsValidator />
+            <ValidationSummary />
 
             <div class="row mb-3">
-                <label class="form-label">Image</label>
+                <label class="form-label">Image <span class="text-danger">*</span></label>
                 @if (blockPreset.Image is not null)
                 {
                     <img style="width: 3vw; height: auto; object-fit: contain; align-self: center;" src="data:image/jpg;base64,@Convert.ToBase64String(blockPreset.Image!.Bytes)" />
                     <input disabled class="form-control" value=@blockPreset.Image!.Name />
                 }
                 <button class="btn btn-primary" @onclick="ShowImageModal">Change Image</button>
-                <ValidationMessage For="() => blockPreset.Image" />
+                <ValidationMessage For="() => blockPreset.ImageId" />
             </div>
             
 
             <div class="row mb-3">
-                <label class="form-label">Name</label>
-                <InputText class="form-control" @bind-Value=@blockPreset.Name />
+                <label class="form-label">Name <span class="text-danger">*</span></label>
+                <InputText class="form-control" @bind-Value="@blockPreset.Name" />
                 <ValidationMessage For="() => blockPreset.Name" />
             </div>
 
             <div class="row mb-3">
-                <label class="form-label">Type</label>
+                <label class="form-label">Type <span class="text-danger">*</span></label>
                 <InputSelect class="form-select" @bind-Value="@blockPreset.Type">
                     <option value="Player">Player</option>
                     <option value="NPC">NPC</option>
@@ -48,12 +50,12 @@
 
             <div class="row mb-3">
                 <label class="form-label">Max Health</label>
-                <InputNumber class="form-control" TValue="int?" @bind-Value=@blockPreset.MaxHealth />
+                <InputNumber class="form-control" TValue="int" @bind-Value="@blockPreset.MaxHealth" />
                 <ValidationMessage For="() => blockPreset.MaxHealth" />
             </div>
 
             <button @onclick=CloseModal class="btn btn-secondary float-end">Cancel</button>
-            <button @onclick=AddPresetBlock class="btn btn-success float-end me-2">Create Preset</button>
+            <button type="submit" class="btn btn-success float-end me-2">Create Preset</button>
         </EditForm>
     </Body>
 </Modal>
@@ -63,28 +65,28 @@
         Edit Block Preset
     </Title>
     <Body>
-        <EditForm FormName="EditBlockPreset" EditContext="@editContext">
+        <EditForm FormName="EditBlockPreset" EditContext="@editContext" OnValidSubmit="EditPresetBlock">
             <DataAnnotationsValidator />
 
             <div class="row mb-3">
-                <label class="form-label">Image</label>
+                <label class="form-label">Image <span class="text-danger">*</span></label>
                 @if(blockPreset.Image is not null)
                 {
                     <img style="width: 3vw; height: auto; object-fit: contain; align-self: center;" src="data:image/jpg;base64,@Convert.ToBase64String(blockPreset.Image!.Bytes)" />
                     <input disabled class="form-control" value=@blockPreset.Image!.Name />
                 }
                 <button class="btn btn-primary" @onclick="ShowImageModal">Change Image</button>
-                <ValidationMessage For="() => blockPreset.Image" />
+                <ValidationMessage For="() => blockPreset.ImageId" />
             </div>
 
             <div class="row mb-3">
-                <label class="form-label">Name</label>
-                <InputText class="form-control" @bind-Value=@blockPreset.Name />
+                <label class="form-label">Name <span class="text-danger">*</span></label>
+                <InputText class="form-control" @bind-Value="@blockPreset.Name" />
                 <ValidationMessage For="() => blockPreset.Name" />
             </div>
 
             <div class="row mb-3">
-                <label class="form-label">Type</label>
+                <label class="form-label">Type <span class="text-danger">*</span></label>
                 <InputSelect class="form-select" @bind-Value="@blockPreset.Type">
                     <option value="Player">Player</option>
                     <option value="NPC">NPC</option>
@@ -95,12 +97,12 @@
 
             <div class="row mb-3">
                 <label class="form-label">Max Health</label>
-                <InputNumber class="form-control" TValue="int?" @bind-Value=@blockPreset.MaxHealth />
+                <InputNumber class="form-control" TValue="int" @bind-Value=@blockPreset.MaxHealth />
                 <ValidationMessage For="() => blockPreset.MaxHealth" />
             </div>
 
             <button @onclick=CloseModal class="btn btn-secondary float-end">Cancel</button>
-            <button @onclick=EditPresetBlock class="btn btn-success float-end me-2">Save Edit</button>
+            <button type="submit" class="btn btn-success float-end me-2">Save Edit</button>
         </EditForm>
     </Body>
 </Modal>
@@ -136,7 +138,7 @@
 @if(ExistingPresets is null)
 {
     <div class="alert alert-secondary">
-        <p class="mb-0"><stong>Loading...</stong>    This shouldn't take long</p>
+        <p class="mb-0"><strong>Loading...</strong>    This shouldn't take long</p>
     </div>
 }
 else
@@ -198,7 +200,9 @@ else
 
     private EditContext editContext { get; set; } = default!;
 
-    private BlockPreset blockPreset { get; set; } = new();
+    private int blockPresetId { get; set; }
+
+    private BlockPresetDT blockPreset { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -224,7 +228,13 @@ else
 
         Context = DbFactory.CreateDbContext();
 
-        Context.BlockPresets.Add(blockPreset);
+        Context.BlockPresets.Add(new()
+        {
+            ImageId = blockPreset.ImageId,
+            Name = blockPreset.Name,
+            Type = blockPreset.Type,
+            MaxHealth = blockPreset.MaxHealth
+        });
         Context.SaveChanges();
 
         Context.Dispose();
@@ -235,7 +245,14 @@ else
     {
         Context = DbFactory.CreateDbContext();
 
-        Context.BlockPresets.Update(blockPreset);
+        Context.BlockPresets.Update(new()
+        {
+            Id = blockPresetId,
+            ImageId = blockPreset.ImageId,
+            Name = blockPreset.Name,
+            Type = blockPreset.Type,
+            MaxHealth = blockPreset.MaxHealth
+        });
         Context.SaveChanges();
 
         Context.Dispose();
@@ -246,7 +263,14 @@ else
     {
         Context = DbFactory.CreateDbContext();
 
-        Context.BlockPresets.Remove(blockPreset);
+        Context.BlockPresets.Remove(new()
+        {
+            Id = blockPresetId,
+            ImageId = blockPreset.ImageId,
+            Name = blockPreset.Name,
+            Type = blockPreset.Type,
+            MaxHealth = blockPreset.MaxHealth
+        });
         Context.SaveChanges();
 
         Context.Dispose();
@@ -261,13 +285,31 @@ else
 
     private void ShowEditModal(BlockPreset block)
     {
-        blockPreset = block;
+        blockPresetId = block.Id;
+
+        blockPreset = new()
+        {
+            ImageId = block.ImageId,
+            Image = block.Image,
+            Name = block.Name!,
+            Type = block.Type,
+            MaxHealth = block.MaxHealth!.Value
+        };
         editModal.Open();
     }
 
     private void ShowDeleteModal(BlockPreset block)
     {
-        blockPreset = block;
+        blockPresetId = block.Id;
+
+        blockPreset = new()
+        {
+            ImageId = block.ImageId,
+            Image = block.Image,
+            Name = block.Name!,
+            Type = block.Type,
+            MaxHealth = block.MaxHealth!.Value
+        };
         deleteModal.Open();
     }
 
@@ -303,5 +345,22 @@ else
     {
         if (Context is not null)
             Context.Dispose();
+    }
+
+    private class BlockPresetDT()
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        [StringLength(100, ErrorMessage = "Name is too long.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Image is required.")]
+        public int ImageId { get; set; } = 0;
+        public Image? Image { get; set; }
+
+        [Required(ErrorMessage = "Type is required.")]
+        public BlockTypes Type { get; set; }
+
+        [Required(ErrorMessage = "Max Health is required.")]
+        public int MaxHealth { get; set; } = 1;
     }
 }

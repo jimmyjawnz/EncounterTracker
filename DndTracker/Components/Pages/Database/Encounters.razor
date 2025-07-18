@@ -64,6 +64,10 @@ else
                             {
                                 <img style="width: 3vw; height: auto; object-fit: contain; align-self: center;" src="data:image/jpg;base64,@Convert.ToBase64String(encounter.Image!.Bytes)" />
                             }
+                            else
+                            {
+                                <p>?</p>
+                            }
                         </td>
                         <td class="text-black">@encounter.Title</td>
                         <td class="text-black text-center">@encounter.Location</td>
