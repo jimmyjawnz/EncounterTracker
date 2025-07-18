@@ -305,14 +305,23 @@
             }
             else
             {
-                foreach (EncounterBlock block in CurrentEncounter.EncounterBlocks)
+                Encounter encounterDummy = CurrentEncounter;
+
+                foreach (EncounterBlock block in encounterDummy.EncounterBlocks)
                 {
-                    block.BlockPreset.Image = null;
+                    block.BlockPreset!.Image = null;
+                    block.BlockPreset = null;
                 }
-                RenderContext.Encounters.Update(CurrentEncounter);
+                RenderContext.Encounters.Update(encounterDummy);
             }
 
-            await RenderContext.SaveChangesAsync();
+            RenderContext.SaveChanges();
+
+            CurrentEncounter = RenderContext.Encounters.Where(e => e.Id == CurrentEncounter.Id).Include(e => e.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.BlockPreset)
+                    .ThenInclude(b => b.Image).First();
+
             await RenderContext.DisposeAsync();
         }
 
@@ -323,6 +332,8 @@
             Location = CurrentEncounter.Location,
             BackgroundImageId = CurrentEncounter.ImageId
         });
+
+
 
     }
 
@@ -367,16 +378,20 @@
 
         Context = DbFactory.CreateDbContext();
 
-        EncounterBlock newBlock = Context.Blocks.Add(new()
+        EncounterBlock newBlock = new()
             {
                 BlockPreset = block,
                 BlockPresetId = block.Id,
                 CurrentHealth = block.MaxHealth,
-            }).Entity;
+            };
+
+        CurrentEncounter.EncounterBlocks.Add(newBlock);
+
+        await Context.SaveChangesAsync();
 
         Context.Dispose();
 
-        CurrentEncounter.EncounterBlocks.Add(newBlock);
+        
 
         modal.Close();
 
