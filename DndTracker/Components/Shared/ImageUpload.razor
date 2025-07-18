@@ -68,9 +68,9 @@ else
 
         // Store the image in the database
         Context = DbFactory.CreateDbContext();
-        await Context.Images.AddAsync(image);
-        await Context.SaveChangesAsync();
-        await Context.DisposeAsync();
+        Context.Images.Add(image);
+        Context.SaveChanges();
+        Context.Dispose();
 
         Message = "Uploaded!";
         await OnUpload.InvokeAsync(image);
