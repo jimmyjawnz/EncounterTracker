@@ -301,10 +301,14 @@
 
             if (CurrentEncounter.Id == 0)
             {
-                await RenderContext!.Encounters.AddAsync(CurrentEncounter);
+                await RenderContext.Encounters.AddAsync(CurrentEncounter);
             }
             else
             {
+                foreach (EncounterBlock block in CurrentEncounter.EncounterBlocks)
+                {
+                    block.BlockPreset.Image = null;
+                }
                 RenderContext.Encounters.Update(CurrentEncounter);
             }
 
