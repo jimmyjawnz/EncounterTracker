@@ -24,6 +24,9 @@
     [Parameter]
     public EventCallback<Image> OnImageClick { get; set; }
 
+    [Parameter]
+    public EventCallback OnLoaded { get; set; }
+
     private ApplicationDbContext? Context { get; set; }
 
     private ICollection<Image> ExistingImages = [];
@@ -40,6 +43,8 @@
         ExistingImages = await Context.Images.ToListAsync();
 
         Context.Dispose();
+
+        await OnLoaded.InvokeAsync();
     }
 
     public void Dispose()
