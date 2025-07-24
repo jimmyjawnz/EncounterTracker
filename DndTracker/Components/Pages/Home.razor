@@ -59,7 +59,8 @@
 	{
 		Context = DbFactory.CreateDbContext();
 
-		var emptyEncounters = Context.Encounters.Where(e => e.Location == string.Empty && e.Title == string.Empty && e.Image == null).ToList();
+		var emptyEncounters = Context.Encounters.Where(e => e.Location == string.Empty && e.Title == string.Empty && e.Image == null)
+									.Include(e => e.EncounterBlocks).ToList();
 		Context.Encounters.RemoveRange(emptyEncounters);
 
 		await Context.SaveChangesAsync();
