@@ -10,6 +10,11 @@ namespace DndTracker.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DeleteData(
+                table: "Images",
+                keyColumn: "Id",
+                keyValue: 1);
+
             migrationBuilder.InsertData(
                 table: "Images",
                 columns: new[] { "Id", "image", "name" },

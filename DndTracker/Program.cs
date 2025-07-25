@@ -76,11 +76,19 @@ using (var serviceScope = app.Services.GetService<IServiceScopeFactory>().Create
 
     var context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    consoleMessage("[s] - DB Migration Start");
+    try
+    {
+        consoleMessage("[s] - DB Migration Start");
 
-    context.Database.Migrate();
+        context.Database.Migrate();
 
-    consoleMessage("[s] - DB Migration Finished. DB is up to date");
+        consoleMessage("[s] - DB Migration Finished. DB is up to date");
+    }
+    catch (Exception ex) {
+        Console.ForegroundColor = ConsoleColor.DarkRed;
+        Console.WriteLine("[s] - DB was unable to Migrate. See detailed error below.");
+        Console.WriteLine(ex.ToString(), ex.Message);
+    }
 
     var emptyEncounters = context.Encounters.Where(e => e.Location == string.Empty && e.Title == string.Empty && e.Image == null)
                                     .Include(e => e.EncounterBlocks).ToList();
