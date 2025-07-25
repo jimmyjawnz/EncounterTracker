@@ -3,8 +3,6 @@
 @inject IJSRuntime JS
 @inject InterTabService InterTabService
 
-@inject IDbContextFactory<ApplicationDbContext> DbFactory
-
 <PageTitle>Home</PageTitle>
 
 <AuthorizeView>
@@ -52,25 +50,8 @@
 	private string LastMessageReceived = string.Empty;
 	private DotNetObjectReference<Home>? objRef;
 
-	private ApplicationDbContext? Context { get; set; }
-
-
-	protected override async Task OnInitializedAsync()
-	{
-		Context = DbFactory.CreateDbContext();
-
-		var emptyEncounters = Context.Encounters.Where(e => e.Location == string.Empty && e.Title == string.Empty && e.Image == null)
-									.Include(e => e.EncounterBlocks).ToList();
-		Context.Encounters.RemoveRange(emptyEncounters);
-
-		await Context.SaveChangesAsync();
-		Context.Dispose();
-	}
-
-
 	public void Dispose()
 	{
 		objRef?.Dispose();
-		Context?.Dispose();
 	}
 }
