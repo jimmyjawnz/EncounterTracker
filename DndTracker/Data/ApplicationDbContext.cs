@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using System.Reflection.Emit;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace DndTracker.Data
 {
@@ -15,6 +16,17 @@ namespace DndTracker.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            var file = File.ReadAllBytes(@"wwwroot\images\no-profile.jpg");
+
+            builder.Entity<Image>().HasData(
+                new Image
+                {
+                    Id = 1,
+                    Bytes = file,
+                    Name = "no-profile.jpg"
+                }
+            );
         }
     }
 }
