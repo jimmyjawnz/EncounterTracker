@@ -54,7 +54,7 @@
                                         <span class="float-end text-white-50">@block.BlockPreset.Type</span>
                                     </h4>
                                 </div>
-                                @if (block.BlockPreset.Type != BlockTypes.Monster && (block.BlockPreset.MaxHealth > 1 && block.BlockPreset.Type != BlockTypes.NPC))
+                                @if (block.BlockPreset.Type == BlockTypes.Player || (block.BlockPreset.MaxHealth > 1 && block.BlockPreset.Type == BlockTypes.NPC))
                                 {
                                     <div class="progress bg-dark" style="height: 30px; font-size: 18pt;">
                                         <div class="progress-bar bg-danger" role="progressbar" style="width: @(((double)block.CurrentHealth!.Value / (double)block.BlockPreset.MaxHealth!.Value) * 100.0)%;" aria-valuenow="@block.CurrentHealth" aria-valuemin="0" aria-valuemax="@block.BlockPreset.MaxHealth!">
