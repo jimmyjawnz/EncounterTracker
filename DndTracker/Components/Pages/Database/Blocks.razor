@@ -256,6 +256,14 @@ else
     private void ShowAddModal()
     {
         blockPreset = new();
+
+        Context = DbFactory.CreateDbContext();
+
+        blockPreset.Image = Context.Images.Where(i => i.Id == 1).FirstOrDefault();
+        blockPreset.ImageId = 1;
+
+        Context.Dispose();
+
         addModal.Open();
     }
 
