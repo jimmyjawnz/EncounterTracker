@@ -4,6 +4,8 @@
 @inject IJSRuntime JS
 @inject InterTabService InterTabService
 
+@implements IDisposable
+
 @inject IDbContextFactory<ApplicationDbContext> DbFactory
 
 @rendermode @(new InteractiveServerRenderMode(false))
@@ -27,14 +29,14 @@
     <h3 style="position:absolute; top:10vh; width: 100vw; font-size: 20pt; font-weight: bold;" class="text-white stroke">@CurrentEncounter.Location</h3>
     <h3 style="position:absolute; top:10vh; width: 100vw; font-size: 20pt; font-weight: bold;" class="text-white">@CurrentEncounter.Location</h3>
 
-    <div style="position:absolute; top:17vh; width: 100vw; height:80vh; justify-items: center; overflow: scroll; overflow-x: hidden; scrollbar-width: none;">
+    <div style="position:absolute; top:17vh; width: 100vw; display: flex; flex-direction: column; align-items: center; height:80vh; overflow: scroll; overflow-x: hidden; scrollbar-width: none;">
         @if (CurrentEncounter.EncounterBlocks.Count > 0)
         {
             @foreach (EncounterBlock block in CurrentEncounter.EncounterBlocks.OrderBy(b => b.BlockPreset.Name).OrderByDescending(b => b.Initiative))
             {
                 @if(block.Visibility)
                 {
-                    <div style="display: flex; width: 50vw; height: 10vh; margin-bottom: 1vh;">
+                    <div style="display: flex; width: 50vw; height: 110px; margin-bottom: 1vh;">
                         <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 10vh;">
                             @if (block.Initiative is not null)
                             {
@@ -42,7 +44,7 @@
                             }
                         </div>
                         <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 10vh;">
-                            <img style="width: 9.9vh; height: 9.9vh; object-fit: cover;" src="data:image/jpg;base64,@Convert.ToBase64String(block.BlockPreset.Image!.Bytes)" />
+                            <img style="width: 9.9vh; height: 100px; object-fit: cover;" src="data:image/jpg;base64,@Convert.ToBase64String(block.BlockPreset.Image!.Bytes)" />
                         </div>
                         <div class="card bg-black bg-opacity-75 rounded-0 text-white" style="width: 45vw;">
                             <div class="card-body">
@@ -54,7 +56,7 @@
                                 </div>
                                 @if (block.BlockPreset.Type != 0)
                                 {
-                                    <div class="progress bg-dark" style="height: 3vh; font-size: x-large;">
+                                    <div class="progress bg-dark" style="height: 30px; font-size: 18pt;">
                                         <div class="progress-bar bg-danger" role="progressbar" style="width: @(((double)block.CurrentHealth!.Value / (double)block.BlockPreset.MaxHealth!.Value) * 100.0)%;" aria-valuenow="@block.CurrentHealth" aria-valuemin="0" aria-valuemax="@block.BlockPreset.MaxHealth!">
                                             <span class="float-start">@block.CurrentHealth</span>
                                         </div>
