@@ -180,8 +180,15 @@
                                 </td>
                                 <td class="text-black">@block.BlockPreset.Name</td>
                                 <td class="text-black">
-                                    <input class="form-control" type="number" @onchange="(arg) => ChangeHealth(block, arg)" value=@block.CurrentHealth />
-                                    (@block.BlockPreset.MaxHealth)</td>
+                                    <div class="input-group">
+                                        <input class="form-control" style="border-right: solid 5px grey;" type="number" @onchange="(arg) => ChangeHealth(block, arg)" value=@block.CurrentHealth max=@block.BlockPreset.MaxHealth />
+                                        <input class="form-control" placeholder="Change health by..." type="number" @bind-value=@HealthModValue />
+                                        <button class="btn btn-secondary" @onclick="() => ChangeHealth(block, new(){ Value=block.CurrentHealth + HealthModValue })">+</button>
+                                        <button class="btn btn-secondary" @onclick="() => ChangeHealth(block, new(){ Value=block.CurrentHealth - HealthModValue })">-</button>
+                                    </div>
+                                    <span class="form-text">(@block.BlockPreset.MaxHealth)</span>
+                                    
+                                </td>
                                 <td class="text-center text-black">@block.BlockPreset.Type.ToString()</td>
                                 <td class="text-center">
                                     <button @onclick="() => RemoveBlock(block)" class="btn btn-sm btn-danger"><i class="bi bi-x-lg"></i></button>
@@ -216,6 +223,8 @@
     private Modal modal { get; set; } = default!;
     private Modal modalEncounters { get; set; } = default!;
     private Modal modalImages { get; set; } = default!;
+
+    private int? HealthModValue { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
