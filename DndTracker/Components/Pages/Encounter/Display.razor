@@ -24,6 +24,17 @@
     {
         <img class="bg-image" src="data:image/jpg;base64,@Convert.ToBase64String(CurrentEncounter.BackgroundImage.ToArray())" />
     }
+
+    @if (CurrentEncounter.Countdown != null)
+    {
+        <div style="position:absolute; top:4vh; left:4vw; width:25vh; height:20vh; display:flex; flex-direction:column;" class="bg-black bg-opacity-75 text-center align-items-center">
+            <br />
+            <h2 style="width:100%;">Countdown</h2>
+            <br />
+            <h1 style="width:100%;">@CurrentEncounter.Countdown</h1>
+        </div>
+    }
+
     <h1 style="position:absolute; top:4vh; width: 100vw; font-size: 40pt; font-weight: bold;" class="text-white stroke">@CurrentEncounter.Title</h1>
     <h1 style="position:absolute; top:4vh; width: 100vw; font-size: 40pt; font-weight: bold;" class="text-white">@CurrentEncounter.Title</h1>
     <h3 style="position:absolute; top:10vh; width: 100vw; font-size: 20pt; font-weight: bold;" class="text-white stroke">@CurrentEncounter.Location</h3>
@@ -37,12 +48,17 @@
                 @if(block.Visibility)
                 {
                     <div style="display: flex; width: 50vw; height: 110px; margin-bottom: 1vh;">
-                        <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 10vh;">
-                            @if (block.Initiative is not null)
-                            {
+                        @if (block.Initiative is not null)
+                        {
+                            <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 10vh;">
                                 <h4 style="font-size: xx-large;" class="text-white w-100 m-0">@block.Initiative</h4>
-                            }
-                        </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 0.5vh;">
+                            </div>
+                        }
                         <div class="bg-black bg-opacity-75 text-center align-items-center" style="display: flex; width: 10vh;">
                             <img style="width: 9.9vh; height: 100px; object-fit: cover;" src="data:image/jpg;base64,@Convert.ToBase64String(block.BlockPreset.Image!.Bytes)" />
                         </div>
@@ -121,7 +137,8 @@
                 Id = dbEncounter.Id,
                 Title = dbEncounter.Title,
                 Location = dbEncounter.Location,
-                EncounterBlocks = dbEncounter.EncounterBlocks
+                EncounterBlocks = dbEncounter.EncounterBlocks,
+                Countdown = dbEncounter.Countdown
             };
 
         if (dbEncounter.Image is null)

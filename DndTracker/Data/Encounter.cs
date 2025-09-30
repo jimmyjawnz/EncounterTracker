@@ -23,6 +23,9 @@ namespace DndTracker.Data
         public int? ImageId { get; set; }
         public Image? Image { get; set; }
 
+        [Column("countdown")]
+        public int? Countdown { get; set; }
+
         public ICollection<EncounterBlock> EncounterBlocks { get; set; } = [];
     }
 }

@@ -10,6 +10,8 @@ namespace DndTracker.Data
 
         public string? Title { get; set; }
 
+        public int? Countdown { get; set; }
+
         public int? BackgroundImageId { get; set; }
         public ICollection<byte>? BackgroundImage { get; set; } = null;
 

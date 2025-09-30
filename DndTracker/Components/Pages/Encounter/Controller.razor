@@ -137,12 +137,19 @@
 
         <div class="row pt-4 m-0">
             <div class="row m-0 pb-2">
-                <div class="col-5"></div>
-                <button class="btn btn-warning col-3">Start Initative</button>
-                <button class="btn btn-light col-2"><i class="bi bi-caret-left-fill"></i> Prev</button>
-                <button class="btn btn-light col-2">Next <i class="bi bi-caret-right-fill"></i></button>
+                <div class="col-2">
+                    <div class="input-group">
+                        <label class="form-label w-100">Countdown</label>
+                        <input class="form-control" type="number" @onchange="(arg) => ChangeCountdown(arg)" value="@CurrentEncounter.Countdown" />
+                        <button class="btn btn-dark" @onclick="() => ChangeCountdown(new() { Value = null })">Clear</button>
+                    </div>
+                </div>
+                <div class="col-3"></div>
+                <button disabled class="btn btn-warning col-3">Start Initative</button>
+                <button disabled class="btn btn-light col-2"><i class="bi bi-caret-left-fill"></i> Prev</button>
+                <button disabled class="btn btn-light col-2">Next <i class="bi bi-caret-right-fill"></i></button>
             </div>
-            <div class="p-0 bg-primary-subtle" style="overflow: scroll; overflow-x: hidden; height:75vh;">
+            <div class="p-0 bg-primary-subtle" style="overflow: scroll; overflow-x: hidden; height:60vh;">
                 <table class="table table-sm table-striped table-light">
                     <thead>
                         <tr>
@@ -400,7 +407,7 @@
 
         Context.Dispose();
 
-        
+
 
         modal.Close();
 
@@ -485,6 +492,25 @@
         }
 
         await UpdateBlock(block);
+
+        await SendEncounter();
+    }
+
+    public async Task ChangeCountdown(ChangeEventArgs arg)
+    {
+        if (CurrentEncounter is null)
+        {
+            return;
+        }
+
+        if (arg.Value is null || string.IsNullOrEmpty(arg.Value.ToString()))
+        {
+            CurrentEncounter.Countdown = null;
+        }
+        else
+        {
+            CurrentEncounter.Countdown = int.Parse(arg.Value.ToString());
+        }
 
         await SendEncounter();
     }
