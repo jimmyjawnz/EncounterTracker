@@ -67,6 +67,10 @@
                                 <div class="card-title text-start">
                                     <h4>
                                         @block.BlockPreset.Name
+                                        @foreach (BlockCondition condition in block.Conditions) 
+                                        {
+                                            <img style="width: auto; height: 35px; margin-left:10px;" src="data:image/png;base64,@Convert.ToBase64String(condition.Condition.Image!.Bytes)" />
+                                        }
                                         <span class="float-end text-white-50">@block.BlockPreset.Type</span>
                                     </h4>
                                 </div>
@@ -122,6 +126,7 @@
 
         Encounter? dbEncounter = await Context!.Encounters.Include(e => e.Image)
             .Include(e => e.EncounterBlocks).ThenInclude(b => b.BlockPreset).ThenInclude(b => b.Image)
+            .Include(e => e.EncounterBlocks).ThenInclude(b => b.Conditions).ThenInclude(c => c.Condition).ThenInclude(c => c.Image)
             .FirstOrDefaultAsync(e => e.Id == encounterId);
 
         if (dbEncounter == null)

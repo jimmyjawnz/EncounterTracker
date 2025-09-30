@@ -36,6 +36,7 @@ namespace DndTracker.Data
         public int? EncounterId { get; set; }
         public Encounter? Encounter { get; set; }
 
+        public ICollection<BlockCondition> Conditions { get; set; } = [];
     }
 
     [Table("EncounterBlockPresets")]

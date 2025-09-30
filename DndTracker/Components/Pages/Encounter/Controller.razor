@@ -155,7 +155,7 @@
                         <tr>
                             <th width="10%"> </th>
                             <th width="15%" class="text-center">Initative</th>
-                            <th>Name</th>
+                            <th>Name / Conditions</th>
                             <th width="30%">Health (MAX)</th>
                             <th width="5%" class="text-center">Type</th>
                             <th width="5%" class="text-center">
@@ -185,7 +185,17 @@
                                 <td class="text-center">
                                     <input class="form-control bg-light-subtle" type="number" @onchange="(arg) => ChangeInitative(block, arg)" value=@block.Initiative />
                                 </td>
-                                <td class="text-black">@block.BlockPreset.Name</td>
+                                <td class="text-black">
+                                    @block.BlockPreset.Name
+                                    <div>
+                                        @foreach (BlockCondition condition in block.Conditions)
+                                        {
+                                            <img @onclick="() => RemoveCondtion(block, condition)" style="width: auto; height: 35px; margin-left:5px; margin-right:5px;" src="data:image/png;base64,@Convert.ToBase64String(condition.Condition.Image!.Bytes)" />
+                                        }
+                                        <button class="btn btn-secondary" @onclick="() => AddCondtion(block)">Add Condition</button>
+                                    </div>
+                                    
+                                </td>
                                 <td class="text-black">
                                     <div class="input-group">
                                         <input class="form-control" style="border-right: solid 5px grey;" type="number" @onchange="(arg) => ChangeHealth(block, arg)" value=@block.CurrentHealth max=@block.BlockPreset.MaxHealth />
@@ -258,6 +268,10 @@
                 .Include(e => e.EncounterBlocks)
                     .ThenInclude(b => b.BlockPreset)
                     .ThenInclude(b => b.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.Conditions)
+                    .ThenInclude(c => c.Condition)
+                    .ThenInclude(b => b.Image)
                 .ToListAsync();
         }
         else
@@ -266,6 +280,10 @@
                 .Include(e => e.Image)
                 .Include(e => e.EncounterBlocks)
                     .ThenInclude(b => b.BlockPreset)
+                    .ThenInclude(b => b.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.Conditions)
+                    .ThenInclude(c => c.Condition)
                     .ThenInclude(b => b.Image)
                 .ToListAsync();
         }
@@ -336,6 +354,10 @@
             CurrentEncounter = RenderContext.Encounters.Where(e => e.Id == CurrentEncounter.Id).Include(e => e.Image)
                 .Include(e => e.EncounterBlocks)
                     .ThenInclude(b => b.BlockPreset)
+                    .ThenInclude(b => b.Image)
+                .Include(e => e.EncounterBlocks)
+                    .ThenInclude(b => b.Conditions)
+                    .ThenInclude(c => c.Condition)
                     .ThenInclude(b => b.Image).First();
 
             await RenderContext.DisposeAsync();
@@ -511,6 +533,56 @@
         {
             CurrentEncounter.Countdown = int.Parse(arg.Value.ToString());
         }
+
+        await SendEncounter();
+    }
+
+    public async Task AddCondtion(EncounterBlock block)
+    {
+        if (CurrentEncounter is null)
+        {
+            return;
+        }
+
+        Context = DbFactory.CreateDbContext();
+
+        var random = new Random();
+
+        BlockCondition newBlock = new()
+        {
+            ConditionId = random.Next(1, 4),
+            EncounterBlockId = block.Id,
+        };
+
+        block.Conditions.Add(newBlock);
+
+        await Context.SaveChangesAsync();
+
+        Context.Dispose();
+
+        await UpdateBlock(block);
+
+        await SendEncounter();
+    }
+
+    public async Task RemoveCondtion(EncounterBlock block, BlockCondition condition)
+    {
+        if (CurrentEncounter is null)
+        {
+            return;
+        }
+
+        block.Conditions.Remove(condition);
+
+        Context = DbFactory.CreateDbContext();
+
+        Context.BlockConditions.Remove(condition);
+
+        await Context.SaveChangesAsync();
+
+        Context.Dispose();
+
+        await UpdateBlock(block);
 
         await SendEncounter();
     }
