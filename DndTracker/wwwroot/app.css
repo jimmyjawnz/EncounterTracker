@@ -20,6 +20,9 @@ td {
     justify-content: center;
 }
 
+.cursor-clickable {
+    cursor: pointer;
+}
 
 
 /*------ Settings ------*/

@@ -149,7 +149,7 @@
                 <button disabled class="btn btn-light col-2"><i class="bi bi-caret-left-fill"></i> Prev</button>
                 <button disabled class="btn btn-light col-2">Next <i class="bi bi-caret-right-fill"></i></button>
             </div>
-            <div class="p-0 bg-primary-subtle" style="overflow: scroll; overflow-x: hidden; height:60vh;">
+            <div class="p-0 bg-primary-subtle" style="overflow: scroll; overflow-x: hidden; height:70vh;">
                 <table class="table table-sm table-striped table-light">
                     <thead>
                         <tr>
@@ -188,11 +188,17 @@
                                 <td class="text-black">
                                     @block.BlockPreset.Name
                                     <div>
-                                        @foreach (BlockCondition condition in block.Conditions)
+                                        @foreach (BlockCondition blockCondition in block.Conditions)
                                         {
-                                            <img @onclick="() => RemoveCondtion(block, condition)" style="width: auto; height: 35px; margin-left:5px; margin-right:5px;" src="data:image/png;base64,@Convert.ToBase64String(condition.Condition.Image!.Bytes)" />
+                                            <img class="cursor-clickable" @onclick="() => RemoveCondtion(block, blockCondition)" style="width: auto; height: 35px; margin-left:5px; margin-right:5px;" src="data:image/png;base64,@Convert.ToBase64String(blockCondition.Condition.Image!.Bytes)" />
                                         }
-                                        <button class="btn btn-secondary" @onclick="() => AddCondtion(block)">Add Condition</button>
+                                        <select class="form-select" @onchange="(arg) => AddCondtion(block, arg)">
+                                            <option selected disabled value="0">None</option>
+                                            @foreach (Condition condition in ExistingConditions)
+                                            {
+                                                <option value="@condition.Id">@condition.Name</option>
+                                            }
+                                        </select>
                                     </div>
                                     
                                 </td>
@@ -234,6 +240,7 @@
 
     private ICollection<Encounter> ExistingEncounters = [];
     private ICollection<BlockPreset> BlockPresets = [];
+    private ICollection<Condition> ExistingConditions = [];
 
     private int CurrentInitative { get; set; } = 0;
 
@@ -248,6 +255,8 @@
         Context = DbFactory.CreateDbContext();
 
         BlockPresets = await Context.BlockPresets.Include(b => b.Image).ToListAsync();
+
+        ExistingConditions = await Context.Conditions.Include(c => c.Image).ToListAsync();
 
         await Context.DisposeAsync();
 
@@ -537,20 +546,23 @@
         await SendEncounter();
     }
 
-    public async Task AddCondtion(EncounterBlock block)
+    public async Task AddCondtion(EncounterBlock block, ChangeEventArgs arg)
     {
         if (CurrentEncounter is null)
         {
             return;
         }
 
-        Context = DbFactory.CreateDbContext();
+        if (int.Parse(arg.Value.ToString()) == 0)
+        {
+            return;
+        }
 
-        var random = new Random();
+        Context = DbFactory.CreateDbContext();
 
         BlockCondition newBlock = new()
         {
-            ConditionId = random.Next(1, 4),
+            ConditionId = int.Parse(arg.Value.ToString()),
             EncounterBlockId = block.Id,
         };
 

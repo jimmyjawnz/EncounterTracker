@@ -15,7 +15,6 @@ namespace DndTracker.Data
         public DbSet<BlockCondition> BlockConditions { get; set; }
         public DbSet<Condition> Conditions { get; set; }
 
-
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
